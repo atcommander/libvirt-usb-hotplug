@@ -8,13 +8,11 @@ import subprocess
 
 config = [
     (
-        "vm1", [
-            "/devices/pci0000:00/0000:00:14.0/usb3/3-11",
-        ]
-    ), (
-        "vm2", [
-            "/devices/pci0000:00/0000:00:14.0/usb3/3-12",
-        ]
+        "win10",
+        [
+            "/devices/pci0000:00/0000:00:1d.0/0000:04:00.0/0000:05:01.0/0000:07:00.0/0000:08:02.0/0000:0b:00.0/usb7",
+            "/devices/pci0000:00/0000:00:1d.0/0000:04:00.0/0000:05:01.0/0000:07:00.0/0000:08:00.0/0000:09:00.0/usb5",
+        ],
     ),
 ]
 
@@ -22,15 +20,17 @@ debug = True
 
 ###################### CODE ########################
 
+
 def dbg(msg):
     global debug
     if debug:
         print(msg, file=sys.stderr)
 
+
 # identify action and actual device added
 
 dbg("--- BEGIN ---")
-
+print(os.getenv())
 action = os.getenv("ACTION") or ""
 if action == "":
     print("Unsupported ACTION: " + action)
@@ -45,13 +45,13 @@ busnum = os.getenv("BUSNUM") or ""
 if busnum == "":
     dbg("don't care about BUSNUM: " + busnum)
     sys.exit(0)
-busnum=int(busnum)
+busnum = int(busnum)
 
 devnum = os.getenv("DEVNUM") or ""
 if devnum == "":
     dbg("don't care about DEVNUM: " + devnum)
     sys.exit(0)
-devnum=int(devnum)
+devnum = int(devnum)
 
 devpath = os.getenv("DEVPATH") or ""
 if devpath == "":
@@ -59,7 +59,7 @@ if devpath == "":
     sys.exit(0)
 devpath = os.path.realpath(devpath)
 
-hub_search = [ "ID_MODEL", "ID_MODEL_FROM_DATABASE" ]
+hub_search = ["ID_MODEL", "ID_MODEL_FROM_DATABASE"]
 for s in hub_search:
     if "hub" in (os.getenv(s) or "").lower():
         dbg("don't care about USB hubs: " + devpath)
@@ -71,6 +71,7 @@ found_domain = ""
 
 for domain, ports in config:
     for port in ports:
+        print(port)
         if port != devpath and (port + "/") not in devpath:
             continue
         # If device path does match, but there are sub devices available
@@ -102,7 +103,11 @@ dbg("busnum={} devnum={} devpath={}".format(busnum, devnum, devpath))
 device_xml = '<hostdev mode="subsystem" type="usb"><source><address bus="{}" device="{}"/></source></hostdev>'
 device_xml = device_xml.format(busnum, devnum)
 
-virsh = subprocess.Popen(["virsh", op, found_domain, "/dev/stdin"], stdin=subprocess.PIPE, stdout=subprocess.DEVNULL)
+virsh = subprocess.Popen(
+    ["virsh", op, found_domain, "/dev/stdin"],
+    stdin=subprocess.PIPE,
+    stdout=subprocess.DEVNULL,
+)
 virsh.communicate(input=device_xml.encode("ascii"))
 virsh.wait()
 
